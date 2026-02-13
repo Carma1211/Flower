@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>QR Scanner</title>
+  <style>
+    body { font-family: Arial,Segoe UI,Helvetica, sans-serif; padding:1rem; }
+    #reader { width:100%; max-width:480px; margin:0 auto; }
+    #controls { margin-top:1rem; display:flex; gap:.5rem; flex-wrap:wrap }
+    button { padding:.5rem 1rem; }
+    #result { margin-top:.75rem; word-break:break-word }
+  </style>
+</head>
+<body>
+  <h1>QR Scanner</h1>
+  <p>Point your phone camera at a QR code. When a URL is detected you can open it.</p>
+  <div id="reader"></div>
+  <div id="controls">
+    <button id="stopBtn">Stop</button>
+    <button id="startBtn">Start</button>
+    <button id="openBtn" disabled>Open URL</button>
+    <input id="manualInput" placeholder="Paste URL here" style="flex:1; min-width:150px" />
+    <button id="openManual">Open Paste</button>
+  </div>
+  <div id="result"></div>
+
+  <script src="https://unpkg.com/html5-qrcode@2.3.7/minified/html5-qrcode.min.js"></script>
+  <script>
+    const resultEl = document.getElementById('result');
+    const openBtn = document.getElementById('openBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const startBtn = document.getElementById('startBtn');
+    const openManual = document.getElementById('openManual');
+    const manualInput = document.getElementById('manualInput');
+
+    let lastCode = null;
+    const html5QrCode = new Html5Qrcode("reader");
+
+    function onScanSuccess(decodedText) {
+      lastCode = decodedText;
+      resultEl.textContent = decodedText;
+      openBtn.disabled = false;
+      // stop scanning after first successful read
+      html5QrCode.stop().catch(()=>{});
+    }
+
+    function onScanFailure(error) {
+      // ignore occasional scan failures
+    }
+
+    function startScanner(){
+      openBtn.disabled = true;
+      resultEl.textContent = 'Starting camera...';
+      html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        onScanSuccess,
+        onScanFailure
+      ).catch(err=>{
+        resultEl.textContent = 'Camera start error: ' + err;
+      });
+    }
+
+    startBtn.addEventListener('click', ()=> startScanner());
+    stopBtn.addEventListener('click', ()=> { html5QrCode.stop().then(()=>{ resultEl.textContent='Stopped'; }).catch(()=>{}); openBtn.disabled=true; });
+    openBtn.addEventListener('click', ()=> { if(lastCode){ window.location.href = lastCode; } });
+    openManual.addEventListener('click', ()=> { const u=manualInput.value.trim(); if(u) window.location.href=u; });
+
+    // auto-start
+    startScanner();
+  </script>
+</body>
+</html>
